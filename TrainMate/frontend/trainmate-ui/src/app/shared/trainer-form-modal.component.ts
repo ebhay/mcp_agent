@@ -1,0 +1,229 @@
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { CreateTrainerRequest, Trainer } from '../models/models';
+import { AdminService } from '../services/admin.service';
+import { ToastService } from '../services/toast.service';
+
+@Component({
+  selector: 'app-trainer-form-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="modal-overlay" (click)="closed.emit()">
+      <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-bold text-dark mb-0">
+              <i class="bi" [ngClass]="isEdit ? 'bi-pencil-square text-warning' : 'bi-person-plus-fill text-primary me-2'"></i>
+              {{ isEdit ? 'Edit Trainer: ' + trainer?.name : 'Register New Trainer' }}
+            </h5>
+            <small class="text-muted">{{ isEdit ? 'Update skill proficiencies and workload ceiling' : 'Add a technical trainer to the Cognizant Academy resource pool' }}</small>
+          </div>
+          <button type="button" class="btn-close" (click)="closed.emit()"></button>
+        </div>
+
+        <form (ngSubmit)="onSave()">
+          <div class="modal-body">
+            <div class="row g-2 g-sm-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-muted">Full Name *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="formData.name"
+                  name="name"
+                  placeholder="e.g. Ramesh Chandra"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-muted">Corporate Email *</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  [(ngModel)]="formData.email"
+                  name="email"
+                  placeholder="e.g. ramesh.c@cognizant.com"
+                  [disabled]="isEdit"
+                  required
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold small text-muted">Technical Skill Set (Comma-separated) *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="formData.skillSet"
+                  name="skillSet"
+                  placeholder="e.g. Java, Spring Boot, Microservices, SQL, AWS"
+                  required
+                />
+                <div class="form-text small text-muted">
+                  Used by the 100-point Allocation Engine to match against cohort requirements (40 pts max).
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-4">
+                <label class="form-label fw-semibold small text-muted">Experience (Years) *</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  [(ngModel)]="formData.experienceYears"
+                  name="experienceYears"
+                  step="0.5"
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-sm-4">
+                <label class="form-label fw-semibold small text-muted">Available From *</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  [(ngModel)]="formData.availableFrom"
+                  name="availableFrom"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-sm-4">
+                <label class="form-label fw-semibold small text-muted">Available Till *</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  [(ngModel)]="formData.availableTill"
+                  name="availableTill"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-muted">Maximum Concurrent Workload *</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  [(ngModel)]="formData.maxWorkload"
+                  name="maxWorkload"
+                  min="1"
+                  max="10"
+                  required
+                />
+                <div class="form-text small text-muted">Maximum active batches this trainer can handle simultaneously (default: 5).</div>
+              </div>
+            </div>
+
+            <div *ngIf="errorMessage" class="alert alert-danger mt-3 py-2 small">
+              <i class="bi bi-exclamation-circle-fill me-1"></i> {{ errorMessage }}
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary-custom" (click)="closed.emit()" [disabled]="isSubmitting">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary-custom" [disabled]="isSubmitting">
+              <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+              {{ isEdit ? 'Save Changes' : 'Add Trainer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+})
+export class TrainerFormModalComponent implements OnInit {
+  @Input() trainer?: Trainer;
+  @Input() isEdit: boolean = false;
+  @Output() saved = new EventEmitter<Trainer>();
+  @Output() closed = new EventEmitter<void>();
+
+  formData: CreateTrainerRequest = {
+    name: '',
+    email: '',
+    skillSet: '',
+    experienceYears: 3,
+    availableFrom: new Date().toISOString().split('T')[0],
+    availableTill: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    maxWorkload: 5
+  };
+
+  isSubmitting: boolean = false;
+  errorMessage: string = '';
+
+  constructor(
+    private adminService: AdminService,
+    private toastService: ToastService
+  ) {}
+
+  ngOnInit(): void {
+    if (this.isEdit && this.trainer) {
+      this.formData = {
+        name: this.trainer.name,
+        email: this.trainer.email || ('trainer' + this.trainer.id + '@cognizant.com'),
+        skillSet: this.trainer.skills ? this.trainer.skills.join(', ') : '',
+        experienceYears: this.trainer.experienceYears || 0,
+        availableFrom: this.trainer.availableFrom,
+        availableTill: this.trainer.availableTill,
+        maxWorkload: this.trainer.maximumWorkload || 5
+      };
+    }
+  }
+
+  onSave(): void {
+    if (!this.formData.name || !this.formData.email || !this.formData.skillSet || !this.formData.availableFrom || !this.formData.availableTill) {
+      this.errorMessage = 'Please complete all required fields.';
+      return;
+    }
+
+    if (new Date(this.formData.availableTill) < new Date(this.formData.availableFrom)) {
+      this.errorMessage = 'Available Till date cannot be earlier than Available From date.';
+      return;
+    }
+
+    if (this.formData.maxWorkload < 1 || this.formData.maxWorkload > 10) {
+      this.errorMessage = 'Maximum concurrent workload must be between 1 and 10.';
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = '';
+
+    if (this.isEdit && this.trainer) {
+      this.adminService.updateTrainer(this.trainer.id, this.formData).subscribe({
+        next: res => {
+          this.isSubmitting = false;
+          if (res.success) {
+            this.toastService.success(`Trainer ${res.data.name} updated successfully.`);
+            this.saved.emit(res.data);
+          } else {
+            this.errorMessage = res.message;
+          }
+        },
+        error: err => {
+          this.isSubmitting = false;
+          this.errorMessage = err.error?.message || 'Failed to update trainer.';
+        }
+      });
+    } else {
+      this.adminService.createTrainer(this.formData).subscribe({
+        next: res => {
+          this.isSubmitting = false;
+          if (res.success) {
+            this.toastService.success(`Trainer ${res.data.name} registered successfully.`);
+            this.saved.emit(res.data);
+          } else {
+            this.errorMessage = res.message;
+          }
+        },
+        error: err => {
+          this.isSubmitting = false;
+          this.errorMessage = err.error?.message || 'Failed to register trainer.';
+        }
+      });
+    }
+  }
+}

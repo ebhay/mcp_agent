@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "cd frontend/trainmate-ui && npm run build",
+  "outputDirectory": "frontend/trainmate-ui/dist/trainmate-ui",
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

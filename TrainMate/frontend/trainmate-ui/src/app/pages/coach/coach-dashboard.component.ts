@@ -1,0 +1,250 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { CoachService } from '../../services/coach.service';
+import { AuthService } from '../../services/auth.service';
+import { CoachDashboard, Cohort } from '../../models/models';
+import { CohortDetailsModalComponent } from '../../shared/cohort-details-modal.component';
+import { CreateCohortModalComponent } from '../../shared/create-cohort-modal.component';
+import { SkeletonCardComponent } from '../../shared/skeleton/skeleton-card.component';
+import { SkeletonTableComponent } from '../../shared/skeleton/skeleton-table.component';
+import { ErrorCardComponent } from '../../shared/error-card.component';
+import { StatusBadgePipe } from '../../shared/pipes/status-badge.pipe';
+import { getInitials } from '../../shared/utils/helpers';
+import { forkJoin } from 'rxjs';
+
+@Component({
+  selector: 'app-coach-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    CohortDetailsModalComponent,
+    CreateCohortModalComponent,
+    SkeletonCardComponent,
+    SkeletonTableComponent,
+    ErrorCardComponent,
+    StatusBadgePipe
+  ],
+  template: `
+    <div>
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Coach Dashboard</h1>
+          <p class="page-subtitle">Welcome back, {{ userName }}! Track your cohorts and allocations.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary-custom" (click)="showCreateModal = true">
+            <i class="bi bi-plus-circle-fill"></i>
+            Create Cohort
+          </button>
+          <a routerLink="/coach/upload" class="btn btn-secondary-custom">
+            <i class="bi bi-cloud-arrow-up-fill text-primary"></i>
+            Upload / Batch
+          </a>
+        </div>
+      </div>
+
+      <!-- Error State with Retry -->
+      <app-error-card
+        *ngIf="hasError"
+        title="Unable to load coach dashboard"
+        message="A network error occurred or the cloud server is waking up. Click below to retry."
+        [isRetrying]="isLoading"
+        (retry)="loadData()">
+      </app-error-card>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid" *ngIf="!hasError">
+        <ng-container *ngIf="isLoading">
+          <app-skeleton-card></app-skeleton-card>
+          <app-skeleton-card></app-skeleton-card>
+          <app-skeleton-card></app-skeleton-card>
+        </ng-container>
+
+        <ng-container *ngIf="!isLoading">
+          <div class="stat-card">
+            <div>
+              <div class="stat-title">Total Cohorts</div>
+              <div class="stat-value">{{ dashboard?.totalCohorts || 0 }}</div>
+            </div>
+            <div class="stat-icon blue">
+              <i class="bi bi-collection-fill"></i>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-title">Assigned Cohorts</div>
+              <div class="stat-value text-success">{{ dashboard?.assigned || 0 }}</div>
+            </div>
+            <div class="stat-icon green">
+              <i class="bi bi-check-circle-fill"></i>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-title">Unassigned Cohorts</div>
+              <div class="stat-value text-danger">{{ dashboard?.unassigned || 0 }}</div>
+            </div>
+            <div class="stat-icon red">
+              <i class="bi bi-exclamation-octagon-fill"></i>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Recent Cohorts Table (FRD Section 41) -->
+      <div class="content-card" *ngIf="!hasError">
+        <div class="content-card-header">
+          <h3 class="content-card-title">Recent Cohorts</h3>
+          <a routerLink="/coach/cohorts" class="btn btn-sm btn-outline-secondary">View All</a>
+        </div>
+
+        <!-- Skeleton Table Placeholder -->
+        <app-skeleton-table *ngIf="isLoading" [rows]="5" [columns]="6"></app-skeleton-table>
+
+        <div class="table-responsive" *ngIf="!isLoading">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th class="text-nowrap">Cohort Code</th>
+                <th>Required Skill</th>
+                <th>Trainer</th>
+                <th class="text-nowrap">Duration</th>
+                <th class="text-nowrap">Status</th>
+                <th class="text-end text-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of recentCohorts">
+                <td class="fw-bold text-dark text-nowrap" data-label="Cohort Code">{{ c.cohortCode }}</td>
+                <td data-label="Required Skill"><span class="badge-tag">{{ c.requiredSkill }}</span></td>
+                <td class="text-nowrap" data-label="Trainer">
+                  <div *ngIf="c.assignedTrainerName" class="d-flex align-items-center gap-2">
+                    <span class="trainer-avatar">{{ getInitials(c.assignedTrainerName) }}</span>
+                    <span class="fw-semibold text-dark" style="font-size: 0.885rem;">{{ c.assignedTrainerName }}</span>
+                  </div>
+                  <span *ngIf="!c.assignedTrainerName" class="badge-status badge-unassigned">Unassigned</span>
+                </td>
+                <td class="text-nowrap" data-label="Duration">
+                  <div class="fw-medium small text-dark">{{ c.startDate }}</div>
+                  <small class="text-muted">{{ c.endDate }}</small>
+                </td>
+                <td class="text-nowrap" data-label="Status">
+                  <span class="badge-status" [ngClass]="c.status | statusBadge">{{ c.status }}</span>
+                </td>
+                <td class="text-end text-nowrap action-cell" data-label="Actions">
+                  <div class="action-btn-group">
+                    <button class="action-btn btn-view" title="View Cohort Details" (click)="selectedCohort = c" aria-label="View cohort details">
+                      <i class="bi bi-eye" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="recentCohorts.length === 0">
+                <td colspan="6" class="text-center py-5">
+                  <div class="d-flex flex-column align-items-center justify-content-center">
+                    <i class="bi bi-collection text-muted opacity-50 mb-2" style="font-size: 2.25rem;"></i>
+                    <h6 class="text-dark fw-bold mb-1">No cohorts created yet</h6>
+                    <p class="text-muted small mb-3">Create or upload your first cohort to see allocation results.</p>
+                    <button class="btn btn-sm btn-primary-custom" (click)="showCreateModal = true">
+                      <i class="bi bi-plus-circle-fill me-1"></i> Create First Cohort
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cohort Details Modal -->
+    <app-cohort-details-modal
+      *ngIf="selectedCohort"
+      [cohort]="selectedCohort"
+      (close)="selectedCohort = null">
+    </app-cohort-details-modal>
+
+    <!-- Create Cohort Modal -->
+    <app-create-cohort-modal
+      *ngIf="showCreateModal"
+      (close)="showCreateModal = false"
+      (cohortCreated)="onCohortCreated($event)">
+    </app-create-cohort-modal>
+  `
+})
+export class CoachDashboardComponent implements OnInit {
+  dashboard: CoachDashboard | null = null;
+  recentCohorts: Cohort[] = [];
+  selectedCohort: Cohort | null = null;
+  showCreateModal: boolean = false;
+  userName: string = 'Coach';
+  isLoading: boolean = true;
+  hasError: boolean = false;
+
+  constructor(
+    private coachService: CoachService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const user = this.authService.currentUserValue;
+    this.userName = user?.name || 'Coach';
+    const coachId = user?.coachId ?? user?.userId;
+    if (coachId) {
+      const cached = this.coachService.peekDashboard(coachId);
+      if (cached && cached.success && cached.data) {
+        this.dashboard = cached.data;
+        this.isLoading = false;
+      }
+    }
+    this.loadData();
+  }
+
+  loadData(): void {
+    const user = this.authService.currentUserValue;
+    const coachId = user?.coachId ?? user?.userId;
+    if (!coachId) {
+      this.isLoading = false;
+      return;
+    }
+
+    if (!this.dashboard) {
+      this.isLoading = true;
+    }
+    this.hasError = false;
+
+    forkJoin({
+      dashboard: this.coachService.getDashboard(coachId),
+      cohorts: this.coachService.getCohorts(coachId)
+    }).subscribe({
+      next: ({ dashboard, cohorts }) => {
+        if (dashboard.success) {
+          this.dashboard = dashboard.data;
+        }
+        if (cohorts.success) {
+          this.recentCohorts = cohorts.data.slice(0, 5);
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load coach dashboard:', err);
+        this.isLoading = false;
+        if (!this.dashboard) {
+          this.hasError = true;
+        }
+      }
+    });
+  }
+
+  onCohortCreated(created: Cohort): void {
+    this.loadData();
+    this.selectedCohort = created;
+  }
+
+  protected readonly getInitials = getInitials;
+}
