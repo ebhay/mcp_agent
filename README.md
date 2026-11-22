@@ -1,0 +1,109 @@
+# TrainMate Mail and Agent
+
+A mail system and AI agent for TrainMate coaches and admins, built from:
+
+- `backend/`: FastAPI API for login, mail, and the agent (chat and mail workflow).
+- `frontend-mcp/`: React (Vite) UI for mail and the agent.
+- `TrainMate/`: the TrainMate Java backend and Angular frontend (see `TrainMate/README.md`).
+
+## Prerequisites
+
+- Python 3.10 or newer
+- Node.js 20.19 or newer (22.12 or newer recommended)
+- A MongoDB database. A free MongoDB Atlas cluster works; allow your IP in its network access list.
+- An OpenAI-compatible API key. This project was tested with Google Gemini.
+
+## 1. Backend
+
+```bash
+cd backend
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
+cp .env.example .env        # Windows: copy .env.example .env
+```
+
+Edit `backend/.env`:
+
+| Variable | What to set |
+| --- | --- |
+| `MONGO_URI` | Your MongoDB connection string |
+| `MONGO_DB_NAME` | Database name (default `appdb`) |
+| `OPENAI_API_KEY` | Your API key |
+| `OPENAI_BASE_URL` | Blank for OpenAI. For Gemini: `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `OPENAI_MODEL` | Chat model, e.g. `gpt-4o-mini` or `gemini-2.5-flash` |
+| `EMBEDDING_MODEL` | Embedding model, e.g. `text-embedding-3-small` or `gemini-embedding-001` |
+| `TRAINMATE_BASE_URL` | TrainMate API URL (default is the hosted instance) |
+| `APP_BASE_URL` | This backend's URL (default `http://localhost:8000`) |
+| `COACH_LOGIN_ID` / `COACH_PASSWORD` | Demo coach login. Must match a coach in TrainMate |
+| `ADMIN_LOGIN_ID` / `ADMIN_PASSWORD` | Demo admin login. Must match an admin in TrainMate |
+| `TRAINER_LOGIN_ID` / `TRAINER_PASSWORD` | Demo trainer login |
+
+Never commit `.env`. It holds secrets, and `.gitignore` already excludes it.
+
+Start the API:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Check it is running: open `http://localhost:8000/api/health`. Interactive docs are at `http://localhost:8000/docs`.
+
+On startup the backend creates the demo users from `.env` in MongoDB. If a password is empty, the server stops with a clear message.
+
+### Run the mail workflow from the command line (optional)
+
+```bash
+python -m agent.run
+```
+
+This runs the coach mail workflow once and prints a JSON report. The same workflow runs from the UI with the **Mail workflow** button.
+
+## 2. Frontend
+
+In a second terminal:
+
+```bash
+cd frontend-mcp
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+The UI talks to `http://localhost:8000` by default. To point it elsewhere, create `frontend-mcp/.env.local` with:
+
+```
+VITE_API_URL=http://localhost:8000
+```
+
+Other scripts: `npm run build` (production build), `npm run lint`, `npm run preview`.
+
+## 3. Using the app
+
+1. Use the **Switch user** dropdown in the sidebar to pick a demo account (no password needed in this demo mode).
+2. As **admin**, open **Mail**, click **Compose**, and send a message to a coach.
+3. Switch to the **coach** account, open **Agent**, and click **Mail workflow**. The agent reads unread mail, creates batches from batch requests, and reallocates unassigned cohorts.
+4. In **Agent**, you can also ask questions in chat. Destructive actions ask for confirmation first.
+
+Batch request mails need: cohort code, required skill, number of trainees, start date, and end date. The agent asks the admin for anything missing.
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| "Cannot reach the backend" in the UI | Start the backend, and check `VITE_API_URL` and port 8000 |
+| `Database is unavailable` (503) | Check `MONGO_URI` and that your IP is allowed in MongoDB Atlas |
+| `Set the ... password in backend/.env` | Fill in the password variables in `.env` and restart |
+| AI provider busy (503) | Wait a minute and retry; the free tier of Gemini has limits |
+| TrainMate did not respond (504) | The hosted TrainMate may be waking up; retry after a minute |
+| `Coach mail account must have the coach role` | Check `COACH_LOGIN_ID` matches a coach in TrainMate |
+
+## Security notes
+
+- Demo login switching has no password, so it is for local demos only. Don't expose the backend to the public internet in this state.
+- Rotate any API key or database password that was ever pasted into chat, logs, or a shared file.
