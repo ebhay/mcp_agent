@@ -1,0 +1,15 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# environment and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# local databases and backups
+*.db
+*.sqlite
+*.bak
