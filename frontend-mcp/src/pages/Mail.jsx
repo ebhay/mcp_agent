@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import Icon from "../icons";
+import { TEMPLATE_FIELDS, buildTemplate, isCohortTemplate, parseTemplate, validateCohortMail } from "../cohortTemplate";
 
 // Backend sends UTC ISO strings; always display in India time.
 function formatDate(iso) {
@@ -15,13 +16,50 @@ function Avatar({ name }) {
   return <span className="avatar">{name.charAt(0)}</span>;
 }
 
-function Compose({ onSent, onCancel }) {
+function CohortFormatGuide() {
+  return (
+    <details className="format-guide">
+      <summary>How to send a new cohort request</summary>
+      <ol className="small">
+        <li>Click <strong>New cohort template</strong> and fill in the values after each colon.</li>
+        <li>Keep the label names exactly as they are. Leave an optional line empty to use the default.</li>
+        <li>Send to a coach. The coach's agent reads unread mail and creates the batch.</li>
+        <li>The coach replies with the cohort code and trainer, or with what is missing.</li>
+      </ol>
+      <table className="guide-table">
+        <thead>
+          <tr><th>Field</th><th>Required</th><th>Format and allowed values</th></tr>
+        </thead>
+        <tbody>
+          {TEMPLATE_FIELDS.map((f) => (
+            <tr key={f.label}>
+              <td>{f.label}</td>
+              <td>{f.required ? "Yes" : "No"}</td>
+              <td>{f.hint}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
+function Compose({ onSent, onCancel, isAdmin }) {
   const [recipients, setRecipients] = useState([]);
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // A filled-in cohort template is checked the same way the backend checks it, before sending.
+  const values = parseTemplate(body);
+  const templateProblems = isCohortTemplate(values) ? validateCohortMail(values) : [];
+
+  function insertTemplate() {
+    setBody(buildTemplate());
+    if (!subject.trim()) setSubject("New batch request - ");
+  }
 
   useEffect(() => {
     api("/api/mail/recipients").then((list) => {
@@ -63,14 +101,28 @@ function Compose({ onSent, onCancel }) {
         <span className="small muted">Subject</span>
         <input placeholder="e.g. Batch schedule update" maxLength={150} value={subject} onChange={(e) => setSubject(e.target.value)} />
       </label>
-      <label>
+      <div className="row between">
         <span className="small muted">Message</span>
-        <textarea placeholder="Write your message…" rows={10} maxLength={5000} value={body} onChange={(e) => setBody(e.target.value)} />
-      </label>
+        {isAdmin && (
+          <button type="button" className="ghost small-btn" onClick={insertTemplate}>
+            <Icon name="spark" size={14} />New cohort template
+          </button>
+        )}
+      </div>
+      <textarea placeholder="Write your message…" rows={12} maxLength={5000} value={body} onChange={(e) => setBody(e.target.value)} />
+
+      {isAdmin && <CohortFormatGuide />}
+
+      {templateProblems.length > 0 && (
+        <ul className="problems">
+          {templateProblems.map((p) => <li key={p}>{p}</li>)}
+        </ul>
+      )}
+
       <div className="row end">
         {error && <p className="error grow">{error}</p>}
         <button type="button" className="ghost" onClick={onCancel}>Discard</button>
-        <button className="primary" disabled={busy || !to || !subject.trim() || !body.trim()}>
+        <button className="primary" disabled={busy || !to || !subject.trim() || !body.trim() || templateProblems.length > 0}>
           <Icon name="send" size={15} />{busy ? "Sending…" : "Send"}
         </button>
       </div>
@@ -172,7 +224,7 @@ export default function Mail({ user, onUnreadChange }) {
       </aside>
 
       <section className="mail-reader">
-        {composing && isAdmin && <Compose onSent={handleSent} onCancel={() => setComposing(false)} />}
+        {composing && isAdmin && <Compose onSent={handleSent} onCancel={() => setComposing(false)} isAdmin={isAdmin} />}
 
         {!composing && selected && (
           <article className="message">

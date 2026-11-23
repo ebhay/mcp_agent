@@ -76,8 +76,12 @@ def send(payload: MailIn, user: dict = Depends(current_user), db: Database = Dep
 
 
 @router.get("/inbox")
-def inbox(user: dict = Depends(current_user), db: Database = Depends(get_db), limit: int = Query(50, le=200)):
-    docs = db.messages.find({"to_username": user["username"]}).sort("created_at", -1).limit(limit)
+def inbox(user: dict = Depends(current_user), db: Database = Depends(get_db),
+          limit: int = Query(50, le=200), unread: bool = Query(False)):
+    query: dict = {"to_username": user["username"]}
+    if unread:
+        query["is_read"] = False
+    docs = db.messages.find(query).sort("created_at", -1).limit(limit)
     return [to_out(d) for d in docs]
 
 

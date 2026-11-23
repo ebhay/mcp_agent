@@ -92,6 +92,24 @@ Other scripts: `npm run build` (production build), `npm run lint`, `npm run prev
 
 Batch request mails need: cohort code, required skill, number of trainees, start date, and end date. The agent asks the admin for anything missing.
 
+## Batch request mail format
+
+An admin sends a new batch request to a coach using **Mail → Compose → New cohort template**. The template has these lines:
+
+| Field | Required | Format and allowed values |
+| --- | --- | --- |
+| Cohort Code | Yes | Unique code, up to 30 characters |
+| Trainees Count | Yes | Whole number from 1 to 500 |
+| Required Skill(s) | Yes | Separate multiple skills with commas |
+| Service Line | No | QEA, ADM, CDE or CIS (default QEA) |
+| Stream | No | Software Development, Web Development, Cloud Infrastructure or Data Engineering |
+| Start Date | Yes | YYYY-MM-DD (DD-MM-YYYY also accepted) |
+| End Date | Yes | YYYY-MM-DD, on or after the start date |
+| Industry Vertical | No | Healthcare, Banking, Retail, Insurance or Communications |
+| Training Location | No | Chennai, Pune, Bangalore, Hyderabad, Kolkata or Virtual |
+
+The Compose screen checks these rules before sending. The coach's **Mail workflow** reads unread mail, creates the batch from a filled-in template, and replies to the admin. Mail that is not a batch request is left unread. Free-form batch requests are also accepted and read by the AI model, but they are less reliable than the template.
+
 ## Troubleshooting
 
 | Problem | Fix |

@@ -37,10 +37,15 @@ class AppMailClient:
         self.user = data["user"]
         self.http.headers["Authorization"] = f"Bearer {data['token']}"
 
-    def inbox(self) -> list[dict]:
-        r = self.http.get("/api/mail/inbox", params={"limit": 50})
+    def inbox(self, unread_only: bool = False) -> list[dict]:
+        params = {"limit": 50, "unread": "true"} if unread_only else {"limit": 50}
+        r = self.http.get("/api/mail/inbox", params=params)
         r.raise_for_status()
         return r.json()
+
+    def unread_inbox(self) -> list[dict]:
+        """Newest unread mail first (the API sorts by creation time, newest first)."""
+        return self.inbox(unread_only=True)
 
     def mark_read(self, message_id: str) -> None:
         self.http.get(f"/api/mail/{message_id}").raise_for_status()

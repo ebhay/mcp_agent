@@ -271,3 +271,39 @@ button.small-btn { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
   .agent { height: auto; }
   .thread { min-height: 60vh; }
 }
+
+/* Batch request template and format guide */
+.format-guide {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+}
+.format-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.format-guide ol {
+  margin: 8px 0 10px 18px;
+  padding: 0;
+}
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.guide-table th,
+.guide-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+.problems {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  border-radius: 10px;
+  background: rgba(217, 119, 87, 0.12);
+  color: #f0b29a;
+  font-size: 0.9rem;
+}
