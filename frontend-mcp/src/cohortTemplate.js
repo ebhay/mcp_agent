@@ -43,6 +43,11 @@ export function buildFilledTemplate(values) {
   return `Hi Coach,\n\nPlease create a new batch with the details below.\n\n${lines}\n\nThanks`;
 }
 
+// Same rule as TrainMate's create-cohort form: prefix plus a random number from 100 to 999.
+export function generateCohortCode(prefix = "QEA26SD") {
+  return prefix + Math.floor(100 + Math.random() * 900);
+}
+
 export function buildTemplate() {
   const lines = TEMPLATE_FIELDS.map((f) => `${f.label}: `).join("\n");
   return `Hi Coach,\n\nPlease create a new batch with the details below.\n\n${lines}\n\nThanks`;

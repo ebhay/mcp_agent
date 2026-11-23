@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import Icon from "../icons";
-import { FIELD_OPTIONS, TEMPLATE_FIELDS, buildFilledTemplate, isCohortTemplate, parseTemplate, validateCohortMail } from "../cohortTemplate";
+import { FIELD_OPTIONS, TEMPLATE_FIELDS, buildFilledTemplate, generateCohortCode, isCohortTemplate, parseTemplate, validateCohortMail } from "../cohortTemplate";
 
 // Backend sends UTC ISO strings; always display in India time.
 function formatDate(iso) {
@@ -45,7 +45,15 @@ function CohortForm({ values, onChange, problems, onApply, onCancel }) {
   return (
     <div className="cohort-form">
       <div className="wide small muted">Fill in the batch details. Fields marked * are required.</div>
-      <FormInput label="Cohort Code" values={values} onSet={onSet} maxLength={30} placeholder="e.g. QEA26SD010" />
+      <div className="wide">
+        <span className="small muted">Cohort Code *</span>
+        <div className="row">
+          <input className="grow" value={values["Cohort Code"] || ""} readOnly aria-label="Cohort Code" />
+          <button type="button" className="ghost small-btn" onClick={() => onChange({ ...values, "Cohort Code": generateCohortCode() })}>
+            <Icon name="spark" size={14} />Generate
+          </button>
+        </div>
+      </div>
       <FormInput label="Trainees Count" values={values} onSet={onSet} type="number" min={1} max={500} placeholder="1 to 500" />
       <FormInput label="Required Skill(s)" values={values} onSet={onSet} placeholder="e.g. Java, Spring Boot, MySQL" className="wide" />
       <FormInput label="Start Date" values={values} onSet={onSet} type="date" />
@@ -115,6 +123,14 @@ function Compose({ onSent, onCancel, isAdmin }) {
   const [formValues, setFormValues] = useState({});
   const formProblems = Object.values(formValues).some((v) => v) ? validateCohortMail(formValues) : [];
 
+  // The cohort code is generated, not typed, same as TrainMate's create-cohort form.
+  function toggleForm() {
+    if (!formOpen && !formValues["Cohort Code"]) {
+      setFormValues({ ...formValues, "Cohort Code": generateCohortCode() });
+    }
+    setFormOpen(!formOpen);
+  }
+
   function applyForm() {
     setBody(buildFilledTemplate(formValues));
     if (!subject.trim() || subject.startsWith("New batch request")) {
@@ -166,7 +182,7 @@ function Compose({ onSent, onCancel, isAdmin }) {
       <div className="row between">
         <span className="small muted">Message</span>
         {isAdmin && (
-          <button type="button" className="ghost small-btn" onClick={() => setFormOpen((open) => !open)}>
+          <button type="button" className="ghost small-btn" onClick={toggleForm}>
             <Icon name="spark" size={14} />{formOpen ? "Hide cohort form" : "New cohort form"}
           </button>
         )}
