@@ -6,8 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    mongo_uri: str = "mongodb://localhost:27017"
-    mongo_db_name: str = "appdb"
+    # SQL database. SQLite needs no install; use postgresql+psycopg://... or mysql+pymysql://... for a server.
+    database_url: str = "sqlite:///./app.db"
+
+    # OpenAI (ChatGPT API). Leave openai_base_url blank for OpenAI.
     openai_api_key: str = ""
     openai_base_url: str = ""
     openai_model: str = "gpt-4o-mini"

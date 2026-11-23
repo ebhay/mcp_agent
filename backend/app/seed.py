@@ -1,6 +1,9 @@
-from pymongo.database import Database
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .db import get_engine
+from .models import Base, User
 from .security import hash_password
 
 
@@ -14,21 +17,21 @@ def demo_users() -> list[dict]:
     ]
 
 
-def seed_users(db: Database) -> None:
+def create_tables() -> None:
+    """Creates any missing tables and indexes. Existing rows are kept."""
+    Base.metadata.create_all(get_engine())
+
+
+def seed_users(db: Session) -> None:
     for user in demo_users():
         if not user["password"]:
             raise RuntimeError(f"Set the {user['role']} password in backend/.env before starting")
-        if db.users.find_one({"username": user["username"]}) is None:
-            db.users.insert_one({
-                "username": user["username"],
-                "name": user["name"],
-                "role": user["role"],
-                "password_hash": hash_password(user["password"]),
-            })
-
-
-def create_indexes(db: Database) -> None:
-    db.users.create_index("username", unique=True)
-    db.sessions.create_index("token", unique=True)
-    db.messages.create_index("to_username")
-    db.messages.create_index("from_username")
+        exists = db.scalar(select(User).where(User.username == user["username"]))
+        if exists is None:
+            db.add(User(
+                username=user["username"],
+                name=user["name"],
+                role=user["role"],
+                password_hash=hash_password(user["password"]),
+            ))
+    db.commit()

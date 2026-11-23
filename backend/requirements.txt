@@ -1,11 +1,11 @@
-# LLM client (OpenAI or any OpenAI-compatible provider, e.g. Gemini)
+# LLM client: OpenAI (ChatGPT API)
 openai
 
 # MCP server for coach tools
 mcp>=1.0,<2   # agent/mcp_server.py uses the 1.x FastMCP API
 
-# Database (MongoDB)
-pymongo
+# SQL database (SQLite by default; PostgreSQL or MySQL via DATABASE_URL)
+sqlalchemy>=2.0
 
 # Config and API layer
 python-dotenv

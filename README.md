@@ -10,8 +10,8 @@ A mail system and AI agent for TrainMate coaches and admins, built from:
 
 - Python 3.10 or newer
 - Node.js 20.19 or newer (22.12 or newer recommended)
-- A MongoDB database. A free MongoDB Atlas cluster works; allow your IP in its network access list.
-- An OpenAI-compatible API key. This project was tested with Google Gemini.
+- No database server is needed: the backend uses a local SQLite file (`backend/app.db`), created automatically.
+- An OpenAI API key (ChatGPT API). Create one at platform.openai.com.
 
 ## Quick start
 
@@ -81,12 +81,11 @@ Edit `backend/.env`:
 
 | Variable | What to set |
 | --- | --- |
-| `MONGO_URI` | Your MongoDB connection string |
-| `MONGO_DB_NAME` | Database name (default `appdb`) |
-| `OPENAI_API_KEY` | Your API key |
-| `OPENAI_BASE_URL` | Blank for OpenAI. For Gemini: `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `OPENAI_MODEL` | Chat model, e.g. `gpt-4o-mini` or `gemini-2.5-flash` |
-| `EMBEDDING_MODEL` | Embedding model, e.g. `text-embedding-3-small` or `gemini-embedding-001` |
+| `DATABASE_URL` | `sqlite:///./app.db` (default, local file). For a server: `postgresql+psycopg://user:password@localhost:5432/trainmate` or `mysql+pymysql://user:password@localhost:3306/trainmate` |
+| `OPENAI_API_KEY` | Your OpenAI (ChatGPT API) key |
+| `OPENAI_BASE_URL` | Leave blank for OpenAI |
+| `OPENAI_MODEL` | Chat model, e.g. `gpt-4o-mini` |
+| `EMBEDDING_MODEL` | Embedding model, e.g. `text-embedding-3-small` |
 | `TRAINMATE_BASE_URL` | TrainMate API URL (default is the hosted instance) |
 | `APP_BASE_URL` | This backend's URL (default `http://localhost:8000`) |
 | `COACH_LOGIN_ID` / `COACH_PASSWORD` | Demo coach login. Must match a coach in TrainMate |
@@ -103,7 +102,7 @@ uvicorn app.main:app --reload --port 8000
 
 Check it is running: open `http://localhost:8000/api/health`. Interactive docs are at `http://localhost:8000/docs`.
 
-On startup the backend creates the demo users from `.env` in MongoDB. If a password is empty, the server stops with a clear message.
+On startup the backend creates the tables and the demo users from `.env` in the database. If a password is empty, the server stops with a clear message.
 
 ### Run the mail workflow from the command line (optional)
 
@@ -165,9 +164,9 @@ The Compose screen checks these rules before sending. The coach's **Mail workflo
 | Problem | Fix |
 | --- | --- |
 | "Cannot reach the backend" in the UI | Start the backend, and check `VITE_API_URL` and port 8000 |
-| `Database is unavailable` (503) | Check `MONGO_URI` and that your IP is allowed in MongoDB Atlas |
+| `Database is unavailable` (503) | Check `DATABASE_URL` in `backend/.env`. For SQLite, the `backend` folder must be writable |
 | `Set the ... password in backend/.env` | Fill in the password variables in `.env` and restart |
-| AI provider busy (503) | Wait a minute and retry; the free tier of Gemini has limits |
+| AI provider busy or quota exceeded (429/503) | Wait a minute and retry. If it persists, check usage and billing at platform.openai.com |
 | TrainMate did not respond (504) | The hosted TrainMate may be waking up; retry after a minute |
 | `Coach mail account must have the coach role` | Check `COACH_LOGIN_ID` matches a coach in TrainMate |
 
