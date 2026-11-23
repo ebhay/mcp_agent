@@ -307,3 +307,27 @@ button.small-btn { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
   color: #f0b29a;
   font-size: 0.9rem;
 }
+
+/* Cohort form (dropdowns and date pickers) */
+.cohort-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.cohort-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cohort-form .wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 600px) {
+  .cohort-form {
+    grid-template-columns: 1fr;
+  }
+}

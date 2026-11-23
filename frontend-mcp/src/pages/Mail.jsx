@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import Icon from "../icons";
-import { TEMPLATE_FIELDS, buildTemplate, isCohortTemplate, parseTemplate, validateCohortMail } from "../cohortTemplate";
+import { FIELD_OPTIONS, TEMPLATE_FIELDS, buildFilledTemplate, isCohortTemplate, parseTemplate, validateCohortMail } from "../cohortTemplate";
 
 // Backend sends UTC ISO strings; always display in India time.
 function formatDate(iso) {
@@ -14,6 +14,61 @@ function formatDate(iso) {
 
 function Avatar({ name }) {
   return <span className="avatar">{name.charAt(0)}</span>;
+}
+
+function FormInput({ label, values, onSet, className, ...rest }) {
+  const required = TEMPLATE_FIELDS.find((f) => f.label === label)?.required;
+  return (
+    <label className={className}>
+      <span className="small muted">{label}{required && " *"}</span>
+      <input {...rest} type={rest.type || "text"} value={values[label] || ""} onChange={(e) => onSet(label, e.target.value)} />
+    </label>
+  );
+}
+
+function FormSelect({ label, values, onSet }) {
+  return (
+    <label>
+      <span className="small muted">{label}</span>
+      <select value={values[label] || ""} onChange={(e) => onSet(label, e.target.value)}>
+        <option value="">Default</option>
+        {FIELD_OPTIONS[label].map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function CohortForm({ values, onChange, problems, onApply, onCancel }) {
+  const onSet = (label, value) => onChange({ ...values, [label]: value });
+  const hasCode = Boolean((values["Cohort Code"] || "").trim());
+
+  return (
+    <div className="cohort-form">
+      <div className="wide small muted">Fill in the batch details. Fields marked * are required.</div>
+      <FormInput label="Cohort Code" values={values} onSet={onSet} maxLength={30} placeholder="e.g. QEA26SD010" />
+      <FormInput label="Trainees Count" values={values} onSet={onSet} type="number" min={1} max={500} placeholder="1 to 500" />
+      <FormInput label="Required Skill(s)" values={values} onSet={onSet} placeholder="e.g. Java, Spring Boot, MySQL" className="wide" />
+      <FormInput label="Start Date" values={values} onSet={onSet} type="date" />
+      <FormInput label="End Date" values={values} onSet={onSet} type="date" />
+      <FormSelect label="Service Line" values={values} onSet={onSet} />
+      <FormSelect label="Stream" values={values} onSet={onSet} />
+      <FormSelect label="Industry Vertical" values={values} onSet={onSet} />
+      <FormSelect label="Training Location" values={values} onSet={onSet} />
+
+      {problems.length > 0 && hasCode && (
+        <ul className="problems wide">
+          {problems.map((p) => <li key={p}>{p}</li>)}
+        </ul>
+      )}
+
+      <div className="row end wide">
+        <button type="button" className="ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="primary" disabled={problems.length > 0} onClick={onApply}>
+          Fill message from form
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function CohortFormatGuide() {
@@ -56,9 +111,16 @@ function Compose({ onSent, onCancel, isAdmin }) {
   const values = parseTemplate(body);
   const templateProblems = isCohortTemplate(values) ? validateCohortMail(values) : [];
 
-  function insertTemplate() {
-    setBody(buildTemplate());
-    if (!subject.trim()) setSubject("New batch request - ");
+  const [formOpen, setFormOpen] = useState(false);
+  const [formValues, setFormValues] = useState({});
+  const formProblems = Object.values(formValues).some((v) => v) ? validateCohortMail(formValues) : [];
+
+  function applyForm() {
+    setBody(buildFilledTemplate(formValues));
+    if (!subject.trim() || subject.startsWith("New batch request")) {
+      setSubject(`New batch request - ${(formValues["Cohort Code"] || "").trim()}`.trimEnd());
+    }
+    setFormOpen(false);
   }
 
   useEffect(() => {
@@ -104,12 +166,22 @@ function Compose({ onSent, onCancel, isAdmin }) {
       <div className="row between">
         <span className="small muted">Message</span>
         {isAdmin && (
-          <button type="button" className="ghost small-btn" onClick={insertTemplate}>
-            <Icon name="spark" size={14} />New cohort template
+          <button type="button" className="ghost small-btn" onClick={() => setFormOpen((open) => !open)}>
+            <Icon name="spark" size={14} />{formOpen ? "Hide cohort form" : "New cohort form"}
           </button>
         )}
       </div>
       <textarea placeholder="Write your message…" rows={12} maxLength={5000} value={body} onChange={(e) => setBody(e.target.value)} />
+
+      {isAdmin && formOpen && (
+        <CohortForm
+          values={formValues}
+          onChange={setFormValues}
+          problems={formProblems}
+          onApply={applyForm}
+          onCancel={() => setFormOpen(false)}
+        />
+      )}
 
       {isAdmin && <CohortFormatGuide />}
 

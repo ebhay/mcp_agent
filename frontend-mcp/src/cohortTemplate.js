@@ -13,10 +13,10 @@ export const TEMPLATE_FIELDS = [
   { label: "Training Location", hint: "Chennai, Pune, Bangalore, Hyderabad, Kolkata or Virtual. Optional" },
 ];
 
-const SERVICE_LINES = ["QEA", "ADM", "CDE", "CIS"];
-const STREAMS = ["Software Development", "Web Development", "Cloud Infrastructure", "Data Engineering"];
-const VERTICALS = ["Healthcare", "Banking", "Retail", "Insurance", "Communications"];
-const LOCATIONS = ["Chennai", "Pune", "Bangalore", "Hyderabad", "Kolkata", "Virtual"];
+export const SERVICE_LINES = ["QEA", "ADM", "CDE", "CIS"];
+export const STREAMS = ["Software Development", "Web Development", "Cloud Infrastructure", "Data Engineering"];
+export const VERTICALS = ["Healthcare", "Banking", "Retail", "Insurance", "Communications"];
+export const LOCATIONS = ["Chennai", "Pune", "Bangalore", "Hyderabad", "Kolkata", "Virtual"];
 const VERTICAL_ALIASES = {
   "banking & financial services": "Banking",
   "banking and financial services": "Banking",
@@ -28,6 +28,20 @@ const LOCATION_ALIASES = { "virtual / online": "Virtual", "virtual/online": "Vir
 
 const LINE = /^\s*[-*]?\s*([A-Za-z()/ ]+?)\s*:\s*(.*?)\s*$/;
 const LABEL_LOOKUP = Object.fromEntries(TEMPLATE_FIELDS.map((f) => [f.label.toLowerCase(), f.label]));
+
+// Dropdown choices for the form. Fields not listed here are free text or dates.
+export const FIELD_OPTIONS = {
+  "Service Line": SERVICE_LINES,
+  Stream: STREAMS,
+  "Industry Vertical": VERTICALS,
+  "Training Location": LOCATIONS,
+};
+
+// Message text built from the form values, in the same "Label: value" format the agent reads.
+export function buildFilledTemplate(values) {
+  const lines = TEMPLATE_FIELDS.map((f) => `${f.label}: ${(values[f.label] || "").trim()}`).join("\n");
+  return `Hi Coach,\n\nPlease create a new batch with the details below.\n\n${lines}\n\nThanks`;
+}
 
 export function buildTemplate() {
   const lines = TEMPLATE_FIELDS.map((f) => `${f.label}: `).join("\n");
