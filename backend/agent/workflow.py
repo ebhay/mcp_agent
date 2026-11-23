@@ -9,6 +9,16 @@ from app.llm import get_llm_client
 from .clients import CoachMailClient, TrainMateClient, TrainMateError
 from .cohort_mail import is_template, normalize, parse_template
 
+
+def validate_request(data: dict) -> list[str]:
+    """Problems with a cohort request. Used by query mode and the MCP server."""
+    return normalize(data)[1]
+
+
+def cohort_payload(data: dict) -> dict:
+    """TrainMate create-cohort body built from checked fields."""
+    return normalize(data)[0]
+
 EXTRACT_PROMPT = (
     "Read the mail and decide whether it asks to create, set up, or open a new training batch or cohort. "
     "Return a JSON object with keys: isBatchRequest (boolean), cohortCode, serviceLine, stream, requiredSkill, "
