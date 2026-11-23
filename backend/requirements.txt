@@ -1,15 +1,12 @@
-# LLM + orchestration
+# LLM client (OpenAI or any OpenAI-compatible provider, e.g. Gemini)
 openai
-langchain
-langchain-openai
-langchain-core
-langgraph
-# MCP (server + client adapters for LangChain)
-mcp
-langchain-mcp-adapters
-# Database: SQL (SQLAlchemy supports SQLite, PostgreSQL, MySQL) and MongoDB
-sqlalchemy
+
+# MCP server for coach tools
+mcp>=1.0,<2   # agent/mcp_server.py uses the 1.x FastMCP API
+
+# Database (MongoDB)
 pymongo
+
 # Config and API layer
 python-dotenv
 pydantic-settings

@@ -13,6 +13,56 @@ A mail system and AI agent for TrainMate coaches and admins, built from:
 - A MongoDB database. A free MongoDB Atlas cluster works; allow your IP in its network access list.
 - An OpenAI-compatible API key. This project was tested with Google Gemini.
 
+## Quick start
+
+Do this once, then start the backend and frontend every time you work on the project.
+
+**Windows (PowerShell)**
+
+```powershell
+# Backend: one-time setup
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env      # then fill in .env (see section 1)
+
+# Backend: start (every time)
+cd backend
+.venv\Scripts\activate
+uvicorn app.main:app --reload --port 8000
+```
+
+```powershell
+# Frontend: one-time setup, then start (every time)
+cd frontend-mcp
+npm install
+npm run dev
+```
+
+**macOS / Linux (bash)**
+
+```bash
+# Backend: one-time setup
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env        # then fill in .env (see section 1)
+
+# Backend: start (every time)
+cd backend && source .venv/bin/activate
+uvicorn app.main:app --reload --port 8000
+```
+
+```bash
+# Frontend: one-time setup, then start (every time)
+cd frontend-mcp && npm install && npm run dev
+```
+
+Open `http://localhost:5173`. The backend health check is `http://localhost:8000/api/health`.
+
+The sections below explain each step and the troubleshooting.
+
 ## 1. Backend
 
 ```bash
