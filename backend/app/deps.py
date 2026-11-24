@@ -1,12 +1,10 @@
-from datetime import datetime, timezone
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .db import get_db
-from .models import AuthSession, User
+from .models import AuthSession, User, utcnow
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -27,7 +25,7 @@ def current_user(
     user = db.scalar(select(User).where(User.username == session.username))
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
-    session.last_seen = datetime.now(timezone.utc)
+    session.last_seen = utcnow()
     db.commit()
     return public_user(user)
 

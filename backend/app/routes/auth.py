@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -8,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import bearer, current_user, public_user
-from ..models import AuthSession, User
+from ..models import AuthSession, User, utcnow
 from ..security import new_token, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -25,7 +23,7 @@ class SwitchIn(BaseModel):
 
 def _open_session(db: Session, user: User) -> dict:
     token = new_token()
-    db.add(AuthSession(token=token, username=user.username, created_at=datetime.now(timezone.utc)))
+    db.add(AuthSession(token=token, username=user.username, created_at=utcnow()))
     db.commit()
     return {"token": token, "user": public_user(user)}
 

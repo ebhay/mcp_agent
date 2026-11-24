@@ -10,7 +10,7 @@ A mail system and AI agent for TrainMate coaches and admins, built from:
 
 - Python 3.10 or newer
 - Node.js 20.19 or newer (22.12 or newer recommended)
-- No database server is needed: the backend uses a local SQLite file (`backend/app.db`), created automatically.
+- Database: a local SQLite file (`backend/app.db`, created automatically), or your local MySQL 8 server if you want to manage the data in MySQL Workbench (see below).
 - An OpenAI API key (ChatGPT API). Create one at platform.openai.com.
 
 ## Quick start
@@ -81,7 +81,7 @@ Edit `backend/.env`:
 
 | Variable | What to set |
 | --- | --- |
-| `DATABASE_URL` | `sqlite:///./app.db` (default, local file). For a server: `postgresql+psycopg://user:password@localhost:5432/trainmate` or `mysql+pymysql://user:password@localhost:3306/trainmate` |
+| `DATABASE_URL` | `sqlite:///./app.db` (default, local file). For local MySQL 8 (Workbench): `mysql+pymysql://user:password@localhost:3306/mailagent`. For PostgreSQL: `postgresql+psycopg://user:password@localhost:5432/mailagent` |
 | `OPENAI_API_KEY` | Your OpenAI (ChatGPT API) key |
 | `OPENAI_BASE_URL` | Leave blank for OpenAI |
 | `OPENAI_MODEL` | Chat model, e.g. `gpt-4o-mini` |
@@ -91,6 +91,26 @@ Edit `backend/.env`:
 | `COACH_LOGIN_ID` / `COACH_PASSWORD` | Demo coach login. Must match a coach in TrainMate |
 | `ADMIN_LOGIN_ID` / `ADMIN_PASSWORD` | Demo admin login. Must match an admin in TrainMate |
 | `TRAINER_LOGIN_ID` / `TRAINER_PASSWORD` | Demo trainer login |
+
+### Use MySQL Workbench (local MySQL 8)
+
+1. Open **MySQL Workbench** and connect to your local MySQL server (usually `Local instance MySQL80`, port `3306`).
+2. In a query tab, create the database (run it once):
+
+   ```sql
+   CREATE DATABASE IF NOT EXISTS mailagent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+3. In `backend/.env`, set the connection (use your own MySQL username and password):
+
+   ```
+   DATABASE_URL=mysql+pymysql://root:YOUR_MYSQL_PASSWORD@localhost:3306/mailagent
+   ```
+
+4. Start the backend. The `users`, `sessions`, and `messages` tables are created automatically and the demo users are added.
+5. In Workbench, right-click **Schemas** and choose **Refresh All** to see `mailagent`. Mail is in the `messages` table.
+
+Use a MySQL user with access to `mailagent` rather than `root` if you can. The `mailagent` database is separate from TrainMate's `trainmate` database.
 
 Never commit `.env`. It holds secrets, and `.gitignore` already excludes it.
 
@@ -164,7 +184,8 @@ The Compose screen checks these rules before sending. The coach's **Mail workflo
 | Problem | Fix |
 | --- | --- |
 | "Cannot reach the backend" in the UI | Start the backend, and check `VITE_API_URL` and port 8000 |
-| `Database is unavailable` (503) | Check `DATABASE_URL` in `backend/.env`. For SQLite, the `backend` folder must be writable |
+| `Database is unavailable` (503) | Check `DATABASE_URL` in `backend/.env`. For MySQL, make sure the server is running, the `mailagent` database exists, and the username and password are right. For SQLite, the `backend` folder must be writable |
+| `Access denied for user` | Wrong MySQL username or password in `DATABASE_URL` |
 | `Set the ... password in backend/.env` | Fill in the password variables in `.env` and restart |
 | AI provider busy or quota exceeded (429/503) | Wait a minute and retry. If it persists, check usage and billing at platform.openai.com |
 | TrainMate did not respond (504) | The hosted TrainMate may be waking up; retry after a minute |

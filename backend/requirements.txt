@@ -6,6 +6,9 @@ mcp>=1.0,<2   # agent/mcp_server.py uses the 1.x FastMCP API
 
 # SQL database (SQLite by default; PostgreSQL or MySQL via DATABASE_URL)
 sqlalchemy>=2.0
+# MySQL driver (used when DATABASE_URL starts with mysql+pymysql://)
+pymysql
+cryptography   # needed by MySQL 8's default password authentication
 
 # Config and API layer
 python-dotenv

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import current_user
-from ..models import Message, User
+from ..models import Message, User, utcnow
 
 router = APIRouter(prefix="/api/mail", tags=["mail"])
 
@@ -69,7 +69,7 @@ def send(payload: MailIn, user: dict = Depends(current_user), db: Session = Depe
         subject=payload.subject.strip(),
         body=payload.body.strip(),
         is_read=False,
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(message)
     db.commit()
